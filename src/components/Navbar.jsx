@@ -27,7 +27,6 @@ function Navbar() {
             
             {user ? (
               <>
-                <Link to="/reviews" className="text-gray-700 hover:text-blue-600">My Reviews</Link>
                 <Link to="/profile" className="text-gray-700 hover:text-blue-600">
                   <User className="h-5 w-5" />
                 </Link>

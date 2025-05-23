@@ -5,7 +5,6 @@ import Home from './pages/Home';
 import BooksList from './pages/BooksList';
 import BookDetails from './pages/BookDetails';
 import AddEditBook from './pages/AddEditBook';
-import UserReviews from './pages/UserReviews';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -35,14 +34,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AddEditBook />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reviews"
-              element={
-                <ProtectedRoute>
-                  <UserReviews />
                 </ProtectedRoute>
               }
             />

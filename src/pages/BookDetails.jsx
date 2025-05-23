@@ -3,14 +3,18 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, Clock, User, ArrowLeft } from 'lucide-react';
 import ReviewModal from '../components/ReviewModal';
 import { getBook } from '../services/booksService';
+import { createReview } from '../services/reviewsService';
+import { useAuthStore } from '../store/authStore';
 
 function BookDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [reviewError, setReviewError] = useState(null);
 
   useEffect(() => {
     const fetchBook = async () => {
@@ -27,9 +31,26 @@ function BookDetails() {
     fetchBook();
   }, [id]);
 
-  const handleReviewSubmit = (review) => {
-    // This will be replaced with an API call to submit the review
-    console.log('New review:', review);
+  const handleReviewSubmit = async (review) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      setReviewError(null);
+      const newReview = await createReview(id, user.id, review);
+      
+      // Update the book's reviews list with the new review
+      setBook(prevBook => ({
+        ...prevBook,
+        reviews: [...(prevBook.reviews || []), newReview]
+      }));
+      
+      setIsModalOpen(false);
+    } catch (err) {
+      setReviewError(err.response?.data?.detail || 'Failed to submit review');
+    }
   };
 
   if (loading) {
@@ -75,7 +96,7 @@ function BookDetails() {
         <div className="md:flex">
           <div className="md:w-1/3">
             <img
-              src="..\..\static\book.jpg"
+              src={book.cover_url}
               alt={book.title}
               className="w-full h-[400px] object-cover"
             />
@@ -107,6 +128,9 @@ function BookDetails() {
 
         <div className="p-6 border-t">
           <h2 className="text-2xl font-bold mb-4">Reviews</h2>
+          {reviewError && (
+            <div className="text-red-500 mb-4">{reviewError}</div>
+          )}
           {book.reviews && book.reviews.length > 0 ? (
             <div className="space-y-4">
               {book.reviews.map((review) => (
@@ -139,7 +163,10 @@ function BookDetails() {
 
       <ReviewModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setReviewError(null);
+        }}
         onSubmit={handleReviewSubmit}
       />
     </div>
