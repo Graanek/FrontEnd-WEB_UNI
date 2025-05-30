@@ -31,3 +31,13 @@ export const createBook = async (bookData) => {
         throw error;
     }
 };
+
+export const getGenres = async () => {
+    try {
+        const response = await axios.get(`${API_URL}/books/genres`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching genres:', error);
+        throw error;
+    }
+}; 

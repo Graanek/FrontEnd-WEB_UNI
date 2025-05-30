@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Book, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import { getGenres } from '../services/booksService';
 
 function AddEditBook() {
   const { id } = useParams();
@@ -21,11 +22,10 @@ function AddEditBook() {
   });
 
   useEffect(() => {
-    // Fetch genres from backend
     const fetchGenres = async () => {
       try {
-        const res = await axios.get('http://127.0.0.1:8000/books/genres');
-        setGenres(res.data);
+        const genresData = await getGenres();
+        setGenres(genresData);
       } catch (err) {
         setError('Failed to load genres');
         console.error('Error fetching genres:', err);
