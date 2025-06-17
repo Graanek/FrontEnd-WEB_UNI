@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Book, Image as ImageIcon, AlertCircle } from 'lucide-react';
-import axios from 'axios';
-import { getGenres } from '../services/booksService';
+import { getGenres, createBook, getBook, updateBook } from '../services/booksService'; 
 
 function AddEditBook() {
   const { id } = useParams();
@@ -22,36 +21,58 @@ function AddEditBook() {
   });
 
   useEffect(() => {
-    const fetchGenres = async () => {
+    const fetchData = async () => {
       try {
         const genresData = await getGenres();
-        setGenres(genresData);
+        setGenres(genresData.data);
+        
+        if (isEditing) {
+          const bookData = await getBook(id);
+          setFormData({
+            title: bookData.title,
+            author: bookData.author,
+            description: bookData.description,
+            cover_url: bookData.cover_url,
+            published_year: bookData.published_year?.split('T')[0] || '', 
+            genre_id: bookData.genre_id?.toString() || '',
+          });
+        }
       } catch (err) {
-        setError('Failed to load genres');
-        console.error('Error fetching genres:', err);
+        setError(isEditing ? 'Failed to load book data' : 'Failed to load genres');
+        console.error('Error fetching data:', err);
       }
     };
-    fetchGenres();
-  }, []);
+    
+    fetchData();
+  }, [id, isEditing]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+    
     try {
-      // Prepare payload for backend
       const payload = {
         ...formData,
         published_year: new Date(formData.published_year).toISOString(),
         genre_id: Number(formData.genre_id),
       };
       
-      // Send request to create book
-      await axios.post('http://127.0.0.1:8000/books/create', payload);
+      if (isEditing) {
+        await updateBook(id, payload); 
+      } else {
+        await createBook(payload); 
+      }
+      
       navigate('/books');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to save book. Please try again.');
-      console.error('Error creating book:', err);
+      if (err.message.includes('Authentication required')) {
+        setError('Please login to continue');
+        navigate('/login');
+      } else {
+        setError(err.response?.data?.detail || err.message || 'Failed to save book. Please try again.');
+      }
+      console.error('Error saving book:', err);
     } finally {
       setLoading(false);
     }

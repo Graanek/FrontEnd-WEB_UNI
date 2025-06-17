@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { User, Mail, BookOpen, Star } from 'lucide-react';
-import { getUserStats, updateUserProfile } from '../services/userService';
+import { getUserStats, updateUserProfile, getCurrentUser } from '../services/userService'; // Poprawiony import
 
 function Profile() {
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     username: user?.username || '',
     email: user?.email || '',
+    bio: user?.bio || '',
   });
   const [stats, setStats] = useState({
     reviewsCount: 0,
@@ -19,39 +20,72 @@ function Profile() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchUserStats = async () => {
-      if (user?.id) {
-        try {
-          const userStats = await getUserStats(user.id);
-          setStats(userStats);
-          setLoading(false);
-        } catch (err) {
-          setError('Failed to fetch user statistics');
-          setLoading(false);
+    const fetchData = async () => {
+      if (!user?.user_id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const currentUserData = await getCurrentUser();
+        setUser(currentUserData);
+        
+        const userStats = await getUserStats(user.user_id);
+        setStats(userStats);
+        
+        setFormData({
+          username: currentUserData.username || '',
+          email: currentUserData.email || '',
+          bio: currentUserData.bio || '',
+        });
+        
+        setLoading(false);
+      } catch (err) {
+        if (err.message.includes('Authentication required')) {
+          setError('Please login to view your profile');
+        } else {
+          setError('Failed to fetch profile data');
         }
+        setLoading(false);
       }
     };
 
-    fetchUserStats();
-  }, [user?.id]);
+    fetchData();
+  }, [user?.user_id, setUser]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+    
     try {
-      const updatedUser = await updateUserProfile(user.id, formData);
-      // Update the user in the auth store
-      useAuthStore.getState().setUser(updatedUser);
+      const updatedUser = await updateUserProfile(user.user_id, formData);
+      
+      setUser(updatedUser);
       setIsEditing(false);
     } catch (err) {
-      setError('Failed to update profile');
+      if (err.message.includes('Authentication required')) {
+        setError('Please login again to update your profile');
+      } else if (err.message.includes('already taken')) {
+        setError(err.message);
+      } else {
+        setError('Failed to update profile. Please try again.');
+      }
     }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   if (!user) {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="bg-white p-6 rounded-lg shadow text-center">
-          <p className="text-gray-600">Loading profile...</p>
+          <p className="text-gray-600">Please login to view your profile</p>
         </div>
       </div>
     );
@@ -61,7 +95,8 @@ function Profile() {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="bg-white p-6 rounded-lg shadow text-center">
-          <p className="text-gray-600">Loading statistics...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="text-gray-600 mt-2">Loading profile...</p>
         </div>
       </div>
     );
@@ -84,6 +119,12 @@ function Profile() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           <div className="bg-white p-6 rounded-lg shadow">
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg">
+                {error}
+              </div>
+            )}
+            
             {isEditing ? (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -92,9 +133,11 @@ function Profile() {
                   </label>
                   <input
                     type="text"
+                    name="username"
                     value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
                   />
                 </div>
                 <div>
@@ -103,9 +146,24 @@ function Profile() {
                   </label>
                   <input
                     type="email"
+                    name="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Bio
+                  </label>
+                  <textarea
+                    name="bio"
+                    value={formData.bio}
+                    onChange={handleChange}
+                    rows="3"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Tell us about yourself..."
                   />
                 </div>
                 <div className="flex gap-2">
@@ -117,8 +175,11 @@ function Profile() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="text-gray-600 hover:text-gray-800"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setError(null);
+                    }}
+                    className="text-gray-600 hover:text-gray-800 px-4 py-2"
                   >
                     Cancel
                   </button>
@@ -140,6 +201,15 @@ function Profile() {
                     <p className="font-medium">{user.email}</p>
                   </div>
                 </div>
+                {user.bio && (
+                  <div className="flex gap-3">
+                    <div className="w-5 h-5 flex-shrink-0"></div>
+                    <div>
+                      <p className="text-sm text-gray-500">Bio</p>
+                      <p className="font-medium">{user.bio}</p>
+                    </div>
+                  </div>
+                )}
                 <button
                   onClick={() => setIsEditing(true)}
                   className="text-blue-600 hover:text-blue-700 font-medium"

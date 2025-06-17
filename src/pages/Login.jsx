@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { login } from '../services/userService'; 
 import { Mail, Lock, AlertCircle } from 'lucide-react';
 
 function Login() {
@@ -10,7 +11,11 @@ function Login() {
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
-  const { setToken, setUser } = useAuthStore();
+  const location = useLocation();
+  const { login: authLogin } = useAuthStore(); 
+
+
+  const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,29 +23,20 @@ function Login() {
     setLoading(true);
 
     try {
-const response = await fetch("http://localhost:8000/users/login", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    email: email,
-    password: password
-  })
-});
-
-if (!response.ok) {
-  throw new Error("Login failed");
-}
-
-const data = await response.json();
-setToken("mock-jwt-token"); // Replace with actual JWT if returned from backend
-setUser({ id: data.user_id, username: data.username, email: data.email });
-navigate("/profile");
-
+      const data = await login(email, password);
+      
+      authLogin(data);
+      
+      navigate(from, { replace: true });
 
     } catch (err) {
-      setError('Invalid email or password');
+      if (err.response?.status === 401) {
+        setError('Invalid email or password');
+      } else if (err.message.includes('Network Error')) {
+        setError('Unable to connect to server. Please try again.');
+      } else {
+        setError(err.response?.data?.detail || 'Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

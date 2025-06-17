@@ -39,17 +39,22 @@ function BookDetails() {
 
     try {
       setReviewError(null);
-      const newReview = await createReview(id, user.id, review);
       
-      // Update the book's reviews list with the new review
-      setBook(prevBook => ({
-        ...prevBook,
-        reviews: [...(prevBook.reviews || []), newReview]
-      }));
+      const newReview = await createReview(id, review);
+      
+      const updatedBook = await getBook(id);
+      setBook(updatedBook);
       
       setIsModalOpen(false);
     } catch (err) {
-      setReviewError(err.response?.data?.detail || 'Failed to submit review');
+      if (err.message.includes('Authentication required')) {
+        setReviewError('Please login to add a review');
+        navigate('/login');
+      } else if (err.message.includes('already reviewed')) {
+        setReviewError('You have already reviewed this book');
+      } else {
+        setReviewError(err.response?.data?.detail || err.message || 'Failed to submit review');
+      }
     }
   };
 
@@ -85,6 +90,10 @@ function BookDetails() {
     );
   }
 
+  const userHasReviewed = user && book.reviews?.some(
+    review => review.user?.user_id === user.user_id
+  );
+
   return (
     <div className="container mx-auto px-4 py-8">
       <Link to="/books" className="flex items-center text-blue-600 hover:text-blue-800 mb-6">
@@ -111,25 +120,38 @@ function BookDetails() {
                 <span>{new Date(book.published_year).getFullYear()}</span>
               </div>
               <div className="flex items-center">
-                <span className="text-gray-500">Genre: {book.genre.genre}</span>
+                <span className="text-gray-500">Genre: {book.genre?.genre || 'Unknown'}</span>
               </div>
             </div>
 
             <p className="text-gray-700 mb-6">{book.description}</p>
 
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Add Review
-            </button>
+            {user ? (
+              userHasReviewed ? (
+                <div className="text-gray-500">You have already reviewed this book</div>
+              ) : (
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Add Review
+                </button>
+              )
+            ) : (
+              <Link
+                to="/login"
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors inline-block"
+              >
+                Login to Add Review
+              </Link>
+            )}
           </div>
         </div>
 
         <div className="p-6 border-t">
           <h2 className="text-2xl font-bold mb-4">Reviews</h2>
           {reviewError && (
-            <div className="text-red-500 mb-4">{reviewError}</div>
+            <div className="text-red-500 mb-4 p-3 bg-red-50 rounded-lg">{reviewError}</div>
           )}
           {book.reviews && book.reviews.length > 0 ? (
             <div className="space-y-4">

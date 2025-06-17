@@ -1,20 +1,26 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
-// Create an axios instance with default config
 const api = axios.create({
-  baseURL: 'http://localhost:8000', // Update to match your backend URL
+  baseURL: 'http://localhost:8000', 
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add request interceptor for adding auth token
 api.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().token;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    try {
+      const token = useAuthStore.getState().token;
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -23,17 +29,22 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor for handling errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized access
-      useAuthStore.getState().logout();
-      window.location.href = '/login';
+      try {
+        useAuthStore.getState().logout();
+      } catch {
+        localStorage.removeItem('access_token');
+      }
+      
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
 );
 
-export default api; 
+export default api;

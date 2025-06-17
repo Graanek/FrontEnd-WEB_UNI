@@ -1,23 +1,44 @@
-import axios from 'axios';
+import api from './api';
 
-const API_URL = 'http://127.0.0.1:8000';
+export const getUsers = async (skip = 0, limit = 100) => {
+    const response = await api.get(`/users/?skip=${skip}&limit=${limit}`);
+    return response.data;
+};
+
+export const getUser = async (userId) => {
+    const response = await api.get(`/users/${userId}`);
+    return response.data;
+};
 
 export const getUserStats = async (userId) => {
-    try {
-        const response = await axios.get(`${API_URL}/users/${userId}/stats`);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching user stats:', error);
-        throw error;
-    }
+    const response = await api.get(`/users/${userId}/stats`);
+    return response.data;
+};
+
+
+export const getCurrentUser = async () => {
+    const response = await api.get('/users/me');
+    return response.data;
 };
 
 export const updateUserProfile = async (userId, userData) => {
-    try {
-        const response = await axios.put(`${API_URL}/users/${userId}`, userData);
-        return response.data;
-    } catch (error) {
-        console.error('Error updating user profile:', error);
-        throw error;
-    }
-}; 
+    const response = await api.put(`/users/${userId}`, userData);
+    return response.data;
+};
+
+export const updateMyProfile = async (userData) => {
+    const currentUser = await getCurrentUser();
+    const response = await api.put(`/users/${currentUser.user_id}`, userData);
+    return response.data;
+};
+
+
+export const login = async (email, password) => {
+    const response = await api.post('/users/login', { email, password });
+    return response.data;
+};
+
+export const register = async (userData) => {
+    const response = await api.post('/users/create', userData);
+    return response.data;
+};
