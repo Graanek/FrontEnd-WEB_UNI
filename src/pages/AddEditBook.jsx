@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Book, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { getGenres, createBook, getBook, updateBook } from '../services/booksService'; 
 
+const STATIC_BOOK_COVER = '/static/book.jpg';
+
 function AddEditBook() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -54,6 +56,7 @@ function AddEditBook() {
     try {
       const payload = {
         ...formData,
+        cover_url: STATIC_BOOK_COVER,
         published_year: new Date(formData.published_year).toISOString(),
         genre_id: Number(formData.genre_id),
       };
@@ -202,22 +205,6 @@ function AddEditBook() {
               required
             />
           </div>
-
-          {formData.cover_url && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cover Preview
-              </label>
-              <img
-                src={formData.cover_url}
-                alt="Book cover preview"
-                className="w-32 h-48 object-cover rounded-lg border border-gray-300"
-                onError={(e) => {
-                  e.target.src = 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=800';
-                }}
-              />
-            </div>
-          )}
 
           <div className="flex justify-end gap-4">
             <button
