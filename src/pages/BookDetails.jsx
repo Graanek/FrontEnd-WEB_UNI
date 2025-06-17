@@ -20,7 +20,7 @@ function BookDetails() {
     const fetchBook = async () => {
       try {
         const data = await getBook(id);
-        setBook(data);
+        setBook(data.data);
         setLoading(false);
       } catch (err) {
         setError('Failed to fetch book details');
@@ -43,7 +43,7 @@ function BookDetails() {
       const newReview = await createReview(id, review);
       
       const updatedBook = await getBook(id);
-      setBook(updatedBook);
+      setBook(updatedBook.data);
       
       setIsModalOpen(false);
     } catch (err) {
