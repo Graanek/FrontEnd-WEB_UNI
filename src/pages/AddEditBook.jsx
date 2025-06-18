@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Book, Image as ImageIcon, AlertCircle } from 'lucide-react';
-import { getGenres, createBook, getBook, updateBook } from '../services/booksService'; 
+import { getGenres, createBook } from '../services/booksService'; 
 
 const STATIC_BOOK_COVER = '/static/book.jpg';
 
 function AddEditBook() {
-  const { id } = useParams();
   const navigate = useNavigate();
-  const isEditing = Boolean(id);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [genres, setGenres] = useState([]);
-
   const [formData, setFormData] = useState({
     title: '',
     author: '',
@@ -23,30 +20,18 @@ function AddEditBook() {
   });
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchGenres = async () => {
       try {
         const genresData = await getGenres();
         setGenres(genresData.data);
-        
-        if (isEditing) {
-          const bookData = await getBook(id);
-          setFormData({
-            title: bookData.title,
-            author: bookData.author,
-            description: bookData.description,
-            cover_url: bookData.cover_url,
-            published_year: bookData.published_year?.split('T')[0] || '', 
-            genre_id: bookData.genre_id?.toString() || '',
-          });
-        }
       } catch (err) {
-        setError(isEditing ? 'Failed to load book data' : 'Failed to load genres');
-        console.error('Error fetching data:', err);
+        setError('Failed to load genres');
+        console.error('Error fetching genres:', err);
       }
     };
     
-    fetchData();
-  }, [id, isEditing]);
+    fetchGenres();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,12 +46,7 @@ function AddEditBook() {
         genre_id: Number(formData.genre_id),
       };
       
-      if (isEditing) {
-        await updateBook(id, payload); 
-      } else {
-        await createBook(payload); 
-      }
-      
+      await createBook(payload); 
       navigate('/books');
     } catch (err) {
       if (err.message.includes('Authentication required')) {
@@ -92,7 +72,7 @@ function AddEditBook() {
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">
-        {isEditing ? 'Edit Book' : 'Add New Book'}
+        Add New Book
       </h1>
 
       <div className="bg-white p-6 rounded-lg shadow-lg">
@@ -221,7 +201,7 @@ function AddEditBook() {
                 loading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              {loading ? 'Saving...' : isEditing ? 'Update Book' : 'Add Book'}
+              {loading ? 'Saving...' : 'Add Book'}
             </button>
           </div>
         </form>

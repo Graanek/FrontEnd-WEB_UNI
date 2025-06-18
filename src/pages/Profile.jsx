@@ -7,9 +7,9 @@ function Profile() {
   const { user, setUser } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    username: user?.username || '',
-    email: user?.email || '',
-    bio: user?.bio || '',
+    username: user.username || '',
+    email: user.email || '',
+    bio: user.bio || '',
   });
   const [stats, setStats] = useState({
     reviewsCount: 0,
